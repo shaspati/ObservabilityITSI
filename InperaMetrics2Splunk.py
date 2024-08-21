@@ -1,8 +1,11 @@
 import requests
 import json
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def sendMetrics2Splunk(metric):
+def sendMetrics2Splunk(metric, logFile):
 
     url = "https://sra-index-rtp-p-04:8088/services/collector"
 
@@ -17,4 +20,5 @@ def sendMetrics2Splunk(metric):
         "POST", url, headers=headers, data=payload, verify=False
     )
 
-    print(response.text)
+    # print(response.text)
+    logFile.write(response.text + "\n")

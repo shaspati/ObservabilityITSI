@@ -1,5 +1,6 @@
 import json
 
+# list of  metrics we start now
 metricsTypes = ["vmdstat", "vmiostat", "dstat", "iostat", "mds", "ucs"]
 
 logType2CINameMapping = {

@@ -28,7 +28,7 @@ def publishMetrics2SplunkIdx(kafka_topic, kafka_brokers):
             convert2Metrics(json.loads(message.value.decode("utf-8")), kafka_topic)
 
             msg_cnt += 1
-            if msg_cnt == 200:
+            if msg_cnt == 5:
                 break
 
     except KeyboardInterrupt:
@@ -48,13 +48,16 @@ def convert2Metrics(msg, kafka_topic):
     metric = {}
     metric["event"] = "metric"
     metric["source"] = logType
-    metric["host"] = msg["beat"]["hostname"]
+    # metric["host"] = msg["beat"]["hostname"]
 
     metric_fields = {}
     keys = msg.keys()
     # print(keys)
     for k in keys:
-        if k == "beat":
+        if k == "@metadata":
+            for kk in msg[k].keys():
+                metric_fields[kk] = msg[k][kk]
+        elif k == "beat":
             metric_fields["inpera_topic_name"] = kafka_topic
             # print("beat", msg[k].keys())
             # metric_fields[k] = kafka_topic
@@ -71,11 +74,11 @@ def convert2Metrics(msg, kafka_topic):
     metric["fields"] = metric_fields
     # send metrics to splunk
     # check if CI name is in list
-    if publish2Metrics(metric_fields["ci_name"]) == 1:
+    if publish2Metrics(metric_fields["ci_name"]) == 1 or 1 == 1:
         # print pretty metrics
         # print(json.dumps(metric, indent=4))
         logFile.write(json.dumps(metric, indent=4) + "\n")
-        im2s.sendMetrics2Splunk(metric)
+        im2s.sendMetrics2Splunk(metric, logFile)
     else:
         print("CI name not in list", metric_fields["ci_name"])
         pass
