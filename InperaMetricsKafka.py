@@ -38,74 +38,79 @@ def publishMetrics2SplunkIdx(kafka_topic, kafka_brokers):
 
 
 def convert2Metrics(msg, kafka_topic):
-    # convert the message to metrics
-    # print("Converting message to metrics", msg)
-    logType = msg["log_type"]
-    if logType not in metricsTypes:
-        print("logType not in list:", logType)
-        return 0
+    try:
+        # convert the message to metrics
+        # print("Converting message to metrics", msg)
+        logType = msg["log_type"]
+        if logType not in metricsTypes:
+            print("logType not in list:", logType)
+            return 0
 
-    metric = {}
-    metric["event"] = "metric"
-    metric["source"] = logType
-    # metric["host"] = msg["beat"]["hostname"]
+        metric = {}
+        metric["event"] = "metric"
+        metric["source"] = logType
+        # metric["host"] = msg["beat"]["hostname"]
 
-    metric_fields = {}
-    keys = msg.keys()
-    # print(keys)
-    for k in keys:
-        if k == "@metadata":
-            for kk in msg[k].keys():
-                metric_fields[kk] = msg[k][kk]
-        elif k == "beat":
-            metric_fields["inpera_topic_name"] = kafka_topic
-            # print("beat", msg[k].keys())
-            # metric_fields[k] = kafka_topic
-            for kk in msg[k].keys():
-                metric_fields[kk] = msg[k][kk]
-        elif k == "message":
-            # print("message", msg[k])
-            # metrics[k] = msg[k]
-            metric_data = getMetricObj(msg[k])
-            metric_fields.update(metric_data)
+        metric_fields = {}
+        keys = msg.keys()
+        # print(keys)
+        for k in keys:
+            if k == "@metadata":
+                for kk in msg[k].keys():
+                    metric_fields[kk] = msg[k][kk]
+            elif k == "beat":
+                metric_fields["inpera_topic_name"] = kafka_topic
+                # print("beat", msg[k].keys())
+                # metric_fields[k] = kafka_topic
+                for kk in msg[k].keys():
+                    metric_fields[kk] = msg[k][kk]
+            elif k == "message":
+                # print("message", msg[k])
+                # metrics[k] = msg[k]
+                metric_data = getMetricObj(msg[k])
+                metric_fields.update(metric_data)
+            else:
+                metric_fields[k] = msg[k]
+
+        metric["fields"] = metric_fields
+        # send metrics to splunk
+        # check if CI name is in list
+        if publish2Metrics(metric_fields["ci_name"]) == 1:
+            # print pretty metrics
+            # print(json.dumps(metric, indent=4))
+            logFile.write(json.dumps(metric, indent=4) + "\n")
+            im2s.sendMetrics2Splunk(metric, logFile)
         else:
-            metric_fields[k] = msg[k]
-
-    metric["fields"] = metric_fields
-    # send metrics to splunk
-    # check if CI name is in list
-    if publish2Metrics(metric_fields["ci_name"]) == 1 or 1 == 1:
-        # print pretty metrics
-        # print(json.dumps(metric, indent=4))
-        logFile.write(json.dumps(metric, indent=4) + "\n")
-        im2s.sendMetrics2Splunk(metric, logFile)
-    else:
-        print("CI name not in list", metric_fields["ci_name"])
-        pass
-
+            print("CI name not in list", metric_fields["ci_name"])
+            pass
+    except Exception as e:
+        print("Error in convert2Metrics", e)
     return 1
 
 
 def getMetricObj(message):
     metric_fields = {}
-    for m in message.split(","):
-        if len(m.split("=")) > 0:
-            # trim the key and value and remove blank spaces and create key value pair
-            # prefix key with metrix_name.
-            metrics_name = m.split("=")[0].strip()
-            metrics_value = m.split("=")[1].strip()
-            # check if metrics_value is a numeric
+    try:
+        for m in message.split(","):
+            if len(m.split("=")) > 0:
+                # trim the key and value and remove blank spaces and create key value pair
+                # prefix key with metrix_name.
+                metrics_name = m.split("=")[0].strip()
+                metrics_value = m.split("=")[1].strip()
+                # check if metrics_value is a numeric
 
-            if metrics_name in logType2CINameMapping.values():
-                metrics_key = "ci_name"
-                metric_fields[metrics_key] = metrics_value
+                if metrics_name in logType2CINameMapping.values():
+                    metrics_key = "ci_name"
+                    metric_fields[metrics_key] = metrics_value
 
-            try:
-                float(metrics_value)
-                metrics_key = "metric_name:" + metrics_name
-                metric_fields[metrics_key] = metrics_value
-            except ValueError:
-                metric_fields[metrics_name] = metrics_value
+                try:
+                    float(metrics_value)
+                    metrics_key = "metric_name:" + metrics_name
+                    metric_fields[metrics_key] = metrics_value
+                except ValueError:
+                    metric_fields[metrics_name] = metrics_value
+    except Exception as e:
+        print("Error in getMetricObj", e)
     return metric_fields
 
 
