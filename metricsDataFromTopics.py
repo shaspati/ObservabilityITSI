@@ -2,8 +2,10 @@ import json
 import threading
 
 # from kafka import KafkaConsumer
+# import InperaMetricsKafka as imk
 import InperaMetricsKafka as imk
 
+# metricDataFromTopics -> InperaMetricsKafka -> InperaMetrics2Splunk , util.py, ci_list.json
 kafka_topic_names = [
     "sre-sniper-logs-alln",
     "sre-logs-vif-alln",
@@ -21,7 +23,12 @@ kafka_topic_names = [
     "eng-inpera-rtp-vif",
 ]
 
-kafka_topic_names = ["sre-sniper-logs-alln", "sre-logs-vif-alln"]
+kafka_topic_names = [
+    "sre-sniper-logs-alln",
+    "sre-logs-vif-alln",
+    "sre-sniper-logs-rcdn",
+    "sre-logs-vif-rcdn",
+]
 
 kafka_brokers = "173.37.82.154:9092,173.37.82.155:9092,173.37.82.156:9092,173.37.82.151:9092,173.37.82.152:9092"
 

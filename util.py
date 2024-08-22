@@ -1,15 +1,13 @@
 import json
 
 # list of  metrics we start now
-metricsTypes = ["vmdstat", "vmiostat", "dstat", "iostat", "mds", "ucs"]
+metricsTypes = ["vmdstat", "vmiostat", "dstat", "iostat"]
 
 logType2CINameMapping = {
     "vmdstat": "vmname",
     "vmiostat": "vmname",
     "dstat": "hostname",
     "iostat": "hostname",
-    "mds": "mds",
-    "ucs": "ucs",
 }
 
 # list of CI names we care for now

@@ -14,7 +14,7 @@ def publishMetrics2SplunkIdx(kafka_topic, kafka_brokers):
     consumer = KafkaConsumer(
         kafka_topic,
         bootstrap_servers=kafka_brokers,
-        auto_offset_reset="earliest",
+        auto_offset_reset="latest",
         group_id="inpera_read_esp",
     )
 
@@ -22,17 +22,29 @@ def publishMetrics2SplunkIdx(kafka_topic, kafka_brokers):
     try:
         for message in consumer:
             # print("Received message: {}".format(message.value.decode("utf-8")))
-            logFile.write(message.value.decode("utf-8") + "\n")
+            try:
 
-            # print(json.loads(message.value.decode("utf-8"))["beat"]["hostname"])
-            convert2Metrics(json.loads(message.value.decode("utf-8")), kafka_topic)
+                metric_rec = message.value.decode("utf-8")
+                # logFile.write(metric_rec + "\n")
 
-            msg_cnt += 1
-            if msg_cnt == 5:
-                break
+                # print(json.loads(metric_rec)
+                convert2Metrics(json.loads(metric_rec), kafka_topic)
+
+                msg_cnt += 1
+                # if msg_cnt == 5:
+                #    break
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                logFile.write(f"JSON decode error: {e}\n")
+            except Exception as e:
+                print("Error in publishMetrics2SplunkIdx", e)
+                logFile.write("Error in publishMetrics2SplunkIdx" + str(e) + message)
 
     except KeyboardInterrupt:
-        pass
+        print("Process interrupted by user")
+    except Exception as e:
+        print(f"Error in Kafka consumer: {e}")
+        logFile.write(f"Error in Kafka consumer: {e}\n")
     finally:
         consumer.close()
 
@@ -40,58 +52,72 @@ def publishMetrics2SplunkIdx(kafka_topic, kafka_brokers):
 def convert2Metrics(msg, kafka_topic):
     try:
         # convert the message to metrics
-        # print("Converting message to metrics", msg)
         logType = msg["log_type"]
         if logType not in metricsTypes:
             print("logType not in list:", logType)
             return 0
 
-        metric = {}
-        metric["event"] = "metric"
-        metric["source"] = logType
-        # metric["host"] = msg["beat"]["hostname"]
+        metric = {
+            "event": "metric",
+            "source": logType,
+        }
 
         metric_fields = {}
         keys = msg.keys()
         # print(keys)
         for k in keys:
-            if k == "@metadata":
-                for kk in msg[k].keys():
-                    metric_fields[kk] = msg[k][kk]
-            elif k == "beat":
-                metric_fields["inpera_topic_name"] = kafka_topic
-                # print("beat", msg[k].keys())
-                # metric_fields[k] = kafka_topic
-                for kk in msg[k].keys():
-                    metric_fields[kk] = msg[k][kk]
-            elif k == "message":
-                # print("message", msg[k])
-                # metrics[k] = msg[k]
-                metric_data = getMetricObj(msg[k])
-                metric_fields.update(metric_data)
-            else:
-                metric_fields[k] = msg[k]
+            try:
+                if k == "@metadata":
+                    for kk in msg[k].keys():
+                        metric_fields[kk] = msg[k][kk]
+                elif k == "beat":
+                    metric_fields["inpera_topic_name"] = kafka_topic
+                    # print("beat", msg[k].keys())
+                    # metric_fields[k] = kafka_topic
+                    for kk in msg[k].keys():
+                        metric_fields[kk] = msg[k][kk]
+                elif k == "message":
+                    # print("message", msg[k])
+                    # metrics[k] = msg[k]
+                    metric_data = processMessageAttribs(msg[k])
+                    metric_fields.update(metric_data)
+                else:
+                    metric_fields[k] = msg[k]
+            except Exception as e:
+                print("Error in convert2Metrics keys", e, k)
+                logFile.write("Error in convert2Metrics keys" + str(e) + msg)
 
         metric["fields"] = metric_fields
-        # send metrics to splunk
-        # check if CI name is in list
+        # check if CI name is in ci_list
         if publish2Metrics(metric_fields["ci_name"]) == 1:
             # print pretty metrics
             # print(json.dumps(metric, indent=4))
-            logFile.write(json.dumps(metric, indent=4) + "\n")
+            # logFile.write(json.dumps(metric, indent=4) + "\n")
+            # publish metrics to splunk
             im2s.sendMetrics2Splunk(metric, logFile)
         else:
-            print("CI name not in list", metric_fields["ci_name"])
-            pass
+            print(
+                "convert2Metrics: CI name not in list",
+                metric_fields["ci_name"],
+                kafka_topic,
+            )
+            logFile.write(
+                "convert2Metrics: CI name not in list"
+                + metric_fields["ci_name"]
+                + kafka_topic
+                + "\n"
+            )
+
     except Exception as e:
-        print("Error in convert2Metrics", e)
+        # print("Error in convert2Metrics", e)
+        logFile.write("Error in convert2Metrics" + str(e) + msg)
     return 1
 
 
-def getMetricObj(message):
+def processMessageAttribs(message):
     metric_fields = {}
-    try:
-        for m in message.split(","):
+    for m in message.split(","):
+        try:
             if len(m.split("=")) > 0:
                 # trim the key and value and remove blank spaces and create key value pair
                 # prefix key with metrix_name.
@@ -109,8 +135,9 @@ def getMetricObj(message):
                     metric_fields[metrics_key] = metrics_value
                 except ValueError:
                     metric_fields[metrics_name] = metrics_value
-    except Exception as e:
-        print("Error in getMetricObj", e)
+        except Exception as e:
+            print("Error in processMessageAttribs", e)
+            logFile.write("Error in processMessageAttribs" + str(e) + message)
     return metric_fields
 
 
