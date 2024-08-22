@@ -54,7 +54,7 @@ def convert2Metrics(msg, kafka_topic):
         # convert the message to metrics
         logType = msg["log_type"]
         if logType not in metricsTypes:
-            print("logType not in list:", logType)
+            # print("logType not in list:", logType)
             return 0
 
         metric = {
@@ -96,6 +96,8 @@ def convert2Metrics(msg, kafka_topic):
             # publish metrics to splunk
             im2s.sendMetrics2Splunk(metric, logFile)
         else:
+            pass
+            """
             print(
                 "convert2Metrics: CI name not in list",
                 metric_fields["ci_name"],
@@ -107,6 +109,7 @@ def convert2Metrics(msg, kafka_topic):
                 + kafka_topic
                 + "\n"
             )
+            """
 
     except Exception as e:
         # print("Error in convert2Metrics", e)
