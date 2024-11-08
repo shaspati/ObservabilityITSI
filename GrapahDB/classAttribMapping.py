@@ -1,6 +1,7 @@
 import urllib.parse
 
 instance_name = "ciscostage"
+
 common_attrib = [
     "name",
     "sys_id",

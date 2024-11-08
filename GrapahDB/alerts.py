@@ -11,7 +11,7 @@ consumer = KafkaConsumer(
     sasl_plain_username=utl.sasl_plain_username,
     sasl_plain_password=utl.sasl_plain_password,
 )
-
+# only zabbix alerts to test for now
 consumer.subscribe(utl.topic_name)
 
 cnt = 0
