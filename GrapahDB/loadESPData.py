@@ -5,7 +5,7 @@ import classAttribMapping as cam
 sys.path.append("/Users/shaspati/Development/ObservabilityITSI/esp")
 import util as utl
 import espToken as t  # type: ignore
-import loadData2GrapDB as gd
+import loadData2GraphDB as gd
 
 token = t.getToken()
 headers = {
@@ -17,13 +17,13 @@ headers = {
 
 def getESP4Data(className):
     url = cam.getClassURl(className)
-    print(url)
+    # print(url)
     offset = 0
     limit = 10000
 
     while True:
         furl = url + f"&sysparm_limit={limit}&sysparm_offset={offset}"
-        print(furl)
+        # print(furl)
         response = requests.get(
             furl,
             headers=headers,
@@ -42,13 +42,31 @@ def getESP4Data(className):
             for key in item.keys():
                 if isinstance(item[key], dict):
                     item[key] = item[key].get("display_value")
-
-        # print(data[0])
+        # 1st 10 records
+        # print(data[0:10])
         gd.loadNodeData(className, data)
         # Process the data here
         print(f"Retrieved {len(data)} records, offset: {offset}")
         # get header data and print X-Total-Count
         offset += limit  # Increment offset to move to the next page
+
+
+def getMonitoringCollectors4TE():
+    url = f"https://{utl.instance_name}.service-now.com/api/now/table/u_monitoring_collectors?sysparm_query=u_monitoring_system=e1c9730bdb0aa410fe8da90b8a9619d8&sysparm_fields=sys_id,u_host.sys_id,u_monitoring_link,u_monitoring_priority&sysparm_orderby=sys_id&sysparm_no_count=false"
+
+    response = requests.get(
+        url,
+        headers=headers,
+    )
+    data = response.json().get("result")
+    # print(data[0:10])
+    # rename u_host.sys_id to ci_sys_id, split u_monitoring_link '=' and get 2nd part and assign to u_monitoring_link
+    for item in data:
+        item["ci_sys_id"] = item.pop("u_host.sys_id")
+        item["te_id"] = item["u_monitoring_link"].split("=")[1]
+    # print(data[0:10])
+    print("Total Count:", response.headers["X-Total-Count"], len(data))
+    gd.loadNodeData("TE2ESP_Mapping", data)
 
 
 def getRelData(p_class_name, c_class_name, p_is_instance=False, c_is_instance=False):
@@ -149,11 +167,12 @@ classList = [
     "cmdb_ci_dns_name",
 ]
 # load data for 1st class
-# for className in classList[5:6]:
-#    print(f"Processing data for {className}", time.ctime())
-#    getESP4Data(className)
+for className in classList[5:6]:
+    print(f"Processing data for {className}", time.ctime())
+    getESP4Data(className)
 
-# getESP4Data("cmdb_ci_dns_name")
+# getESP4Data("u_monitoring_collectors")
+getMonitoringCollectors4TE()
 
 # load relationship data
 # getRelData("u_service_domain", "u_service_category")
@@ -170,6 +189,6 @@ classList = [
 # getRelData("u_cmdb_ci_cisco_application_instance", "cmdb_ci_appl", False, True)
 # getRelData("cmdb_ci_application_cluster", "cmdb_ci_appl", False, True)
 # getRelData("cmdb_ci_appl", "cmdb_ci_application_cluster", True, False)
-getRelData("cmdb_ci_appl", "cmdb_ci_appl", True, True)  # deleted and recreate
+# getRelData("cmdb_ci_appl", "cmdb_ci_appl", True, True)  # deleted and recreate
 # getRelData2file("cmdb_ci_appl", "cmdb_ci_server", True, True)
 # getRelData("cmdb_ci_appl", "cmdb_ci_dns_name", True, False)

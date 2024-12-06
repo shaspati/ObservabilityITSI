@@ -146,10 +146,4 @@ def getRelURL(pclass, cclass, p_is_instance, c_is_instance):
     return url
 
 
-# parent.sys_class_name=u_cmdb_ci_cisco_application_instance^child.sys_class_nameINSTANCEOFcmdb_ci_appl
-
-# parent.sys_class_nameINSTANCEOFcmdb_ci_appl^child.sys_class_nameINSTANCEOFcmdb_ci_server^parent.operational_statusIN6,1
-
-# parent.sys_class_name=u_service_domain^child.sys_class_name=u_service_category
-
 # getRelQuery("u_service_domain", "u_service_category")
