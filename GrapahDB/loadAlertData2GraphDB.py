@@ -18,7 +18,7 @@ def creZabbixRela(sysId):
         """
         # print(query_old)
         query = f"""
-        MATCH ((n) WHERE (n:cmdb_ci_appl OR n:cmdb_ci_server OR n:cmdb_ci_dns_name) AND n.sys_id = '{sysId}'),(a:alerts {{event_sysid: '{sysId}'}})
+        MATCH ((n) WHERE (n:cmdb_ci_appl OR n:cmdb_ci_server OR n:cmdb_ci_dns_name OR n:cmdb_ci_application_cluster) AND n.sys_id = '{sysId}'),(a:alerts {{event_sysid: '{sysId}'}})
           MERGE (n)-[r:Recived_Alert]->(a)
         RETURN r 
         """
@@ -78,7 +78,7 @@ def creTeAlertRel(ci_sys_id, testId):
         # print(query)
 
         query = f"""
-        MATCH ((n) WHERE (n:cmdb_ci_appl OR n:cmdb_ci_server OR n:cmdb_ci_dns_name) AND n.sys_id = '{ci_sys_id}'), (a:alerts {{testId: '{testId}'}})
+        MATCH ((n) WHERE (n:cmdb_ci_appl) AND n.sys_id = '{ci_sys_id}'), (a:alerts {{testId: '{testId}'}})
         MERGE (n)-[r:Recived_Alert]->(a)
         RETURN r
         """
