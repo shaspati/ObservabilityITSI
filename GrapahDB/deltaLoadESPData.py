@@ -2,6 +2,16 @@ from loadData2GraphDB import updNodeData, delNodeData
 
 # read data from kafka and load into graph database
 # Mapping of class names to their respective graph database fields and corresponding message fields
+esp_class_2_graph_mapping = {
+    "cmdb_ci_appl": "Application Endpoints",
+    "cmdb_ci_appl_generic": "Application Endpoints",
+    "cmdb_ci_web_service": "Application Endpoints",
+    "cmdb_ci_db_instance": "Application Endpoints",
+    "cmdb_ci_server": "Server",
+    "cmdb_ci_linux_server": "Server",
+}
+
+
 class_field_mapping = {
     "cmdb_ci_appl": {
         "name": {"column": "name", "value_field": "value"},
@@ -33,10 +43,12 @@ def convert_kafka_msg_to_graph_obj(message, class_name):
         graph_obj[graph_key] = message[column_name][value_field]
 
     # print(graph_obj)
+    graph_lable_name = esp_class_2_graph_mapping[class_name]
+
     if graph_obj["operational_status"] == "Retired":
-        delNodeData(class_name, graph_obj)
+        delNodeData(graph_lable_name, graph_obj)
     else:
-        updNodeData(class_name, graph_obj)
+        updNodeData(graph_lable_name, graph_obj)
 
     return graph_obj
 
