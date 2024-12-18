@@ -11,11 +11,18 @@ driver = GraphDatabase.driver(uri=uri, auth=(user, pwd))
 
 def creZabbixRela(sysId):
     try:
-        query = f"""
+        query_old = f"""
         MATCH (n {{sys_id: '{sysId}'}}), (a:alerts {{event_sysid: '{sysId}'}})
         MERGE (n)-[r:Recived_Alert]->(a)
         RETURN r
         """
+        # print(query_old)
+        query = f"""
+        MATCH ((n) WHERE (n:cmdb_ci_appl OR n:cmdb_ci_server OR n:cmdb_ci_dns_name) AND n.sys_id = '{sysId}'),(a:alerts {{event_sysid: '{sysId}'}})
+          MERGE (n)-[r:Recived_Alert]->(a)
+        RETURN r 
+        """
+
         # print(query)
         with driver.session() as session:
             result = session.run(query)
@@ -63,8 +70,15 @@ def upsertZabbixNode(data):
 def creTeAlertRel(ci_sys_id, testId):
     try:
         # create or update relationship between CI node and alerts node
-        query = f"""
+        query_old = f"""
         MATCH (n {{sys_id: '{ci_sys_id}'}}), (a:alerts {{testId: '{testId}'}})
+        MERGE (n)-[r:Recived_Alert]->(a)
+        RETURN r
+        """
+        # print(query)
+
+        query = f"""
+        MATCH ((n) WHERE (n:cmdb_ci_appl OR n:cmdb_ci_server OR n:cmdb_ci_dns_name) AND n.sys_id = '{ci_sys_id}'), (a:alerts {{testId: '{testId}'}})
         MERGE (n)-[r:Recived_Alert]->(a)
         RETURN r
         """

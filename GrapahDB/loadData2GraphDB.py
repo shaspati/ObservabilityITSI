@@ -25,6 +25,41 @@ def loadNodeData(className, data):
         session.run(query, data=data)
 
 
+# CI data
+def updNodeData(className, data):
+    keys = data.keys()
+    # merge multiple records and send only once to neo4j
+    # keys = data[0].keys()
+    # print(keys)
+    query = f"""
+    UNWIND $data AS row
+    MERGE (p: {className} {{sys_id: row.sys_id}})
+    ON CREATE SET
+        {', '.join([f'p.{key} = row.{key}' for key in keys])}
+    ON MATCH SET
+        {', '.join([f'p.{key} = row.{key}' for key in keys])}
+    """
+    # print(query)
+
+    # Execute the query using a transaction
+    with driver.session() as session:
+        session.run(query, data=data)
+
+
+def delNodeData(className, data):
+    # print(keys)
+    query = f"""
+    UNWIND $data AS row
+    MATCH (p: {className} {{sys_id: row.sys_id}})
+    DETACH DELETE p
+    """
+    # print(query)
+
+    # Execute the query using a transaction
+    with driver.session() as session:
+        session.run(query, data=data)
+
+
 # relationship data between CI nodes
 def loadRelData(data, p_class_name, c_class_name):
     # Create the Cypher query dynamically based on the keys
